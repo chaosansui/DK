@@ -7,7 +7,6 @@ from astropy.time import Time, TimeDelta
 import numpy as np
 from satellite_env import SatelliteEnv
 
-from satellite_data import get_satellite_data
 from orbits.orbit_red import create_satellite_red_orbit
 from interface.orbits_untils import OrbitalElementsInterface
 from satellites.satellite_red import satellite_red_run
