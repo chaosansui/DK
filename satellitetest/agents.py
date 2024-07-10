@@ -83,15 +83,19 @@ class Agent:
         self.update_target_networks()
 
 class ReplayBuffer:
-    def __init__(self, max_size=1000000):
+    def __init__(self, capacity, obs_dim, state_dim, action_dim, batch_size):
+        self.capacity = capacity
+        self.obs_dim = obs_dim
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.batch_size = batch_size
         self.storage = []
-        self.max_size = max_size
         self.ptr = 0
 
     def add(self, data):
-        if len(self.storage) == self.max_size:
+        if len(self.storage) == self.capacity:
             self.storage[int(self.ptr)] = data
-            self.ptr = (self.ptr + 1) % self.max_size
+            self.ptr = (self.ptr + 1) % self.capacity
         else:
             self.storage.append(data)
 

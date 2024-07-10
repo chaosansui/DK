@@ -3,7 +3,7 @@ import numpy as np
 class SatelliteEnv:
     def __init__(self):
         self.state_dim = 18  # 3个卫星，每个6维
-        self.action_dim = 3  # 每个卫星3维动作
+        self.action_dim = 9  # 每个卫星3维动作
         self.reset()
 
     def reset(self):
@@ -16,7 +16,7 @@ class SatelliteEnv:
         return self.state.flatten()
 
     def step(self, actions):
-        # actions 是一个 (3, 3) 的数组，每个卫星的加速度 (ax, ay, az)
+        # actions 是一个 (9,) 的数组，每个卫星的加速度 (ax, ay, az)
         actions = actions.reshape((3, 3))
         self.state[:, :3] += self.state[:, 3:]  # 更新位置
         self.state[:, 3:] += actions  # 更新速度
