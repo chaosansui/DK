@@ -1,22 +1,48 @@
-import numpy as np
 from satellite_env import SatelliteEnv
 from agents import Agent, ReplayBuffer
+import numpy as np
+from satellite_env import SatelliteEnv
 
-env = SatelliteEnv()
-replay_buffer = ReplayBuffer()
-agents = [Agent(18, 3) for _ in range(3)]  # 三个智能体，每个有18维状态（3个卫星，每个6维）和3维动作
+import numpy as np
+import matplotlib.pyplot as plt
+import torch
+def test():
 
-for episode in range(1000):
-    state = env.reset()
-    for step in range(100):
-        actions = [agent.get_action(state.flatten()) for agent in agents]
-        next_state, reward, done, _ = env.step(actions)
-        replay_buffer.add((state, actions, reward, next_state, done))
-        state = next_state
 
-        if len(replay_buffer.storage) > 64:
-            for agent in agents:
+    env = SatelliteEnv()
+    replay_buffer = ReplayBuffer()
+    agent = Agent(18, 9)  # 一个智能体，输入是18维状态，输出是9维动作（3个卫星，每个3维动作）
+
+    episode_rewards = []
+
+    for episode in range(1000):
+        state = env.reset()
+        total_reward = 0
+        for step in range(100):
+            action = agent.get_action(state)
+            next_state, reward, done, _ = env.step(action)
+            replay_buffer.add((state, action, reward, next_state, done))
+            state = next_state
+            total_reward += reward
+
+            if len(replay_buffer.storage) > 64:
                 agent.train(replay_buffer)
 
-        if done:
-            break
+            if done:
+                break
+
+        episode_rewards.append(total_reward)
+        print(f"Episode {episode}, Total Reward: {total_reward}")
+
+    # 保存模型
+    torch.save(agent.actor.state_dict(), "actor.pth")
+    torch.save(agent.critic.state_dict(), "critic.pth")
+
+    # 绘制奖励变化图表
+    plt.plot(episode_rewards)
+    plt.xlabel('Episode')
+    plt.ylabel('Total Reward')
+    plt.title('Training Reward over Time')
+    plt.savefig('training_rewards.png')
+    plt.show()
+

@@ -4,7 +4,10 @@ from astropy.time import Time
 from matplotlib import pyplot as plt
 from poliastro.bodies import Earth
 from astropy.time import Time, TimeDelta
+import numpy as np
+from satellite_env import SatelliteEnv
 
+from satellite_data import get_satellite_data
 from orbits.orbit_red import create_satellite_red_orbit
 from interface.orbits_untils import OrbitalElementsInterface
 from satellites.satellite_red import satellite_red_run
@@ -14,7 +17,7 @@ from orbits.orbit_blue import generate_blue_orbit
 from satellites.satellite_blue import satellite_blue_run
 from interface.orbits_maneuver import OrbitalManeuverInterface
 from orbits.orbital_calculations import calculate_updated_orbit
-from satellite_env import SatelliteEnvironment
+from train import test
 
 
 def create():
@@ -86,9 +89,10 @@ def create():
         'blue':blue_orbit
     }
 
+
+
 def main():
     create()
-
-
+    test()
 if __name__ == "__main__":
     main()
