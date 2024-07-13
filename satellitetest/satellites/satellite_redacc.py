@@ -1,7 +1,6 @@
 from astropy.time import Time, TimeDelta
 from astropy import units as u
 from poliastro.twobody import Orbit, orbit
-from orbits.orbit_redacc import generate_redacc_orbit
 def satellite_redacc_run(time:Time,orbit:Orbit):
     # 创建轨道对象
     redacc_orbit =orbit
