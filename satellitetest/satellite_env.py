@@ -18,7 +18,7 @@ class SatelliteEnv:
         self.reset()
 
     def reset(self):
-        red_orb,blue_orb,redacc_orb=create()
+        red_orb,blue_orb,redacc_orb,delta_v=create()
         time,blue_location,blue_vector=satellite_blue_run(specific_time, blue_orb)
         time, red_location, red_vector=satellite_red_run(specific_time,red_orb)
         time, redacc_location, redacc_vector = satellite_red_run(specific_time, red_orb)
@@ -32,6 +32,8 @@ class SatelliteEnv:
         return self.state.flatten()
 
     def step(self, actions):
+        red_orb, blue_orb, redacc_orb, delta_v = create()
+        step=delta_v
         # 动作是一个 (9,) 的数组，每个卫星的加速度 (ax, ay, az)
         actions = actions.reshape((3, 3))
         self.state[:, :3] += self.state[:, 3:6]  # 更新位置

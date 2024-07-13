@@ -39,7 +39,7 @@ def create():
     # 设置第二个轨道的要素
     orbital_elements_2.set_semi_major_axis((300+1000)/2 * u.km)  # 更高的LEO轨道
     orbital_elements_2.set_eccentricity(0.02 * u.one)  # 略微增加偏心率
-    orbital_elements_2.set_inclination(90 * u.deg)  # 极地轨道
+    orbital_elements_2.set_inclination(57 * u.deg)  # 极地轨道
     orbital_elements_2.set_raan(0 * u.deg)
     orbital_elements_2.set_arg_periapsis(0 * u.deg)
     orbital_elements_2.set_true_anomaly(0 * u.deg)
@@ -59,4 +59,4 @@ def create():
 
     # 计算更新后的轨道
     updated_orbit = calculate_updated_orbit(blue_orbit, maneuver_time, delta_v)
-    return red_orb,blue_orbit,redacc_orbit
+    return red_orb,blue_orbit,redacc_orbit,delta_v
