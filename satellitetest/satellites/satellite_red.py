@@ -2,10 +2,10 @@ from astropy.time import Time, TimeDelta
 
 from astropy import units as u
 from poliastro.twobody import Orbit, orbit
-from orbits.orbit_red import create_satellite_red_orbit
+
 def satellite_red_run(time:Time,orbit:Orbit):
     # 创建轨道对象
-    red_orbit = create_satellite_red_orbit()
+    red_orbit=orbit
 
     # 设置初始推进时间间隔（例如，每秒推进一次）
     time_step = 1 * u.second
