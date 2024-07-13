@@ -22,9 +22,9 @@ def satellite_blue_run(time:Time,orbit:Orbit):
         r, v = blue_orbit.rv()
 
         # 输出时间、位置和速度
-        # print(f"时间：{current_time}")
-        # print(f"位置：{r}")
-        # print(f"速度：{v}")
+        print(f"时间：{current_time}")
+        print(f"位置：{r}")
+        print(f"速度：{v}")
         # print("---")
 
         # 更新时间

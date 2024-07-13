@@ -2,7 +2,9 @@ from astropy import units as u
 from astropy.time import Time
 from poliastro.bodies import Sun, Earth
 from poliastro.twobody import Orbit
-from interface.orbits_untils import OrbitalElementsInterface
+from satellitetest.interface.orbits_untils import OrbitalElementsInterface
+
+
 #该轨道倾角为57度 335km*758km所生成的轨道
 def create_satellite_red_orbit():
     a = 546.5 << u.km
