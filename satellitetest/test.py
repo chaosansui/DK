@@ -2,6 +2,7 @@ import numpy as np
 from astropy import units as u
 from astropy.time import Time,TimeDelta
 from matplotlib import pyplot as plt
+from matplotlib.testing.jpl_units import km
 from poliastro.bodies import Earth
 from astropy.time import Time, TimeDelta
 import numpy as np
@@ -20,7 +21,7 @@ from specific_time import specific_time
 def create():
     # 创建一个红色方固定的轨道
     red_orb = create_satellite_red_orbit()
-    print(red_orb)
+
 
     # 创建轨道要素接口实例
     orbital_elements = OrbitalElementsInterface()
@@ -49,14 +50,13 @@ def create():
     # 生成轨道
     blue_orbit = generate_blue_orbit(orbital_elements)
     redacc_orbit= generate_redacc_orbit(orbital_elements_2)
-    print(redacc_orbit)
-    print(blue_orbit)
+
 
     # 变轨机动
     # 设置机动时间和 delta_v
     maneuver_time = specific_time + 30 * u.s  # 30秒后进行机动
-    delta_v = (5 * u.s, [0, 0.5, 0] * u.km / u.s)  # 假设第一个元素是时间增量，第二个元素是速度增量
+    delta_v = [0, 3, 0] # 假设第一个元素是时间增量，第二个元素是速度增量
 
     # 计算更新后的轨道
-    updated_orbit = calculate_updated_orbit(blue_orbit, maneuver_time, delta_v)
+    #updated_orbit = calculate_updated_orbit(blue_orbit, maneuver_time, delta_v)
     return red_orb,blue_orbit,redacc_orbit,delta_v

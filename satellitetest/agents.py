@@ -35,12 +35,13 @@ class Agent:
         self.critic = Critic(state_dim, action_dim)
         self.target_actor = Actor(state_dim, action_dim)
         self.target_critic = Critic(state_dim, action_dim)
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=0.01)
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=0.01)
-        self.gamma = 0.95
-        self.tau = 0.01
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=0.001)  # 调整学习率
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=0.001)  # 调整学习率
+        self.gamma = 0.99  # 折扣因子
+        self.tau = 0.01  # 软更新参数
 
         self.update_target_networks(tau=1.0)
+        self.noise_scale = 1.0
 
     def update_target_networks(self, tau=None):
         if tau is None:
@@ -51,16 +52,16 @@ class Agent:
             target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
     def get_action(self, state):
-        state = torch.FloatTensor(state)
-        return self.actor(state).detach().numpy()
+        state = torch.FloatTensor(state).unsqueeze(0)
+        return self.actor(state).detach().numpy()[0]
 
     def train(self, replay_buffer, batch_size=64):
         state, action, reward, next_state, done = replay_buffer.sample(batch_size)
         state = torch.FloatTensor(state)
         next_state = torch.FloatTensor(next_state)
         action = torch.FloatTensor(action)
-        reward = torch.FloatTensor(reward)
-        done = torch.FloatTensor(done)
+        reward = torch.FloatTensor(reward).unsqueeze(1)
+        done = torch.FloatTensor(done).unsqueeze(1)
 
         # Critic loss
         target_q = self.target_critic(next_state, self.target_actor(next_state))
@@ -92,7 +93,8 @@ class ReplayBuffer:
         self.storage = []
         self.ptr = 0
 
-    def add(self, data):
+    def add(self, state, action, reward, next_state, done):
+        data = (state, action, reward, next_state, done)
         if len(self.storage) == self.capacity:
             self.storage[int(self.ptr)] = data
             self.ptr = (self.ptr + 1) % self.capacity
