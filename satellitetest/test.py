@@ -27,7 +27,7 @@ def create():
     orbital_elements = OrbitalElementsInterface()
 
     # 设置轨道要素
-    orbital_elements.set_semi_major_axis((335+758)/2 * u.km)
+    orbital_elements.set_semi_major_axis((200+1600)/2 * u.km)
     orbital_elements.set_eccentricity(0.01 * u.one)
     orbital_elements.set_inclination(57 * u.deg)
     orbital_elements.set_raan(0 * u.deg)
