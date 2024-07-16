@@ -75,26 +75,41 @@ class SatelliteEnv:
         return self.state.flatten(), (reward_blue, reward_redacc), done, {}
 
     def calculate_reward(self):
-        distance_to_recon = np.linalg.norm(self.state[0, :3] - self.state[1, :3])
-        distance_to_interference = np.linalg.norm(self.state[0, :3] - self.state[2, :3])
+        current_distance_to_recon = np.linalg.norm(self.state[0, :3] - self.state[1, :3])
+        current_distance_to_interference = np.linalg.norm(self.state[0, :3] - self.state[2, :3])
 
-        reward_blue = -distance_to_recon + distance_to_interference
-        reward_redacc = distance_to_recon - distance_to_interference
+        if hasattr(self, 'previous_distance_to_recon') and hasattr(self, 'previous_distance_to_interference'):
+            previous_distance_to_recon = self.previous_distance_to_recon
+            previous_distance_to_interference = self.previous_distance_to_interference
+        else:
+            previous_distance_to_recon = current_distance_to_recon
+            previous_distance_to_interference = current_distance_to_interference
 
-        # 额外奖励和惩罚
-        if distance_to_recon <= 20:
-            reward_blue += 1000  # 蓝方胜利条件
-        if distance_to_interference <= 10:
-            reward_blue -= 1000  # 蓝方被干扰
-            reward_redacc += 1000  # 红方干扰成功
+        distance_change_to_recon = current_distance_to_recon - previous_distance_to_recon
+        distance_change_to_interference = current_distance_to_interference - previous_distance_to_interference
 
-        done = distance_to_recon <= 20 or self.time >= 300 or self.state[0, 6] <= 0
+        reward_blue = -distance_change_to_recon + distance_change_to_interference
+        reward_redacc = distance_change_to_recon - distance_change_to_interference
+
+        fuel_penalty_blue = self.max_fuel - self.state[0, 6]
+        fuel_penalty_redacc = self.max_fuel - self.state[2, 6]
+        reward_blue -= fuel_penalty_blue * 0.1
+        reward_redacc -= fuel_penalty_redacc * 0.1
+
+        if current_distance_to_recon <= 20:
+            reward_blue += 1000
+            done = True
+        elif current_distance_to_interference <= 10:
+            reward_blue -= 1000
+            reward_redacc += 1000
+            done = True
+        else:
+            done = self.time >= 300 or self.state[0, 6] <= 0
+
+        reward_redacc *= 0.5
+
+        self.previous_distance_to_recon = current_distance_to_recon
+        self.previous_distance_to_interference = current_distance_to_interference
+
         return reward_blue, reward_redacc, done
 
-    def is_done(self):
-        distance_to_recon = np.linalg.norm(self.state[0, :3] - self.state[1, :3])
-        if distance_to_recon <= 20:
-            return True  # 胜利条件
-        if self.time >= 300 or self.state[0, 6] <= 0:
-            return True  # 时间限制或燃料用尽
-        return False
