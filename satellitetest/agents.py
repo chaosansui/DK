@@ -32,7 +32,7 @@ class Critic(nn.Module):
 
 # 定义噪声模型
 class OUNoise:
-    def __init__(self, action_dim, mu=0, theta=0.15, sigma=0.2):
+    def __init__(self, action_dim, mu=0, theta=0.15, sigma=0.3):
         self.action_dim = action_dim
         self.mu = mu
         self.theta = theta
@@ -84,6 +84,11 @@ class Agent:
         self.gamma = 0.99
         self.tau = 0.005
         self.replay_buffer = ReplayBuffer(replay_buffer_capacity)
+        self.epsilon = 1.0  # 初始探索率
+        self.epsilon_decay = 0.995  # 探索率衰减
+        self.epsilon_min = 0.01  # 最小探索率
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
         # 软更新权重初始化
         self.update_target_networks(tau=1.0)
@@ -98,10 +103,16 @@ class Agent:
                 target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
     def get_action(self, state, noise_scale=0.1):
-        state = torch.FloatTensor(state).unsqueeze(0)
-        action = self.actor(state).detach().numpy()[0]
-        noise = noise_scale * self.noise.sample()
-        return np.clip(action + noise, -1, 1)  # 确保动作在合适的范围内
+        state = torch.FloatTensor(state.reshape(1, -1)).to(self.device)
+        action = self.actor(state).cpu().data.numpy().flatten()
+
+        if np.random.rand() < self.epsilon:
+            action += np.random.normal(0, noise_scale, size=action.shape)
+
+        action = np.clip(action, -1, 1)
+        self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)  # 动态调整探索率
+
+        return action
 
     def train(self, batch_size=64):
         if len(self.replay_buffer) < batch_size:

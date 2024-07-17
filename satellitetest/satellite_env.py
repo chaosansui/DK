@@ -88,28 +88,28 @@ class SatelliteEnv:
         distance_change_to_recon = current_distance_to_recon - previous_distance_to_recon
         distance_change_to_interference = current_distance_to_interference - previous_distance_to_interference
 
-        reward_blue = -distance_change_to_recon + distance_change_to_interference
-        reward_redacc = distance_change_to_recon - distance_change_to_interference
+        # 调整后的奖励函数逻辑
+        reward_blue =  - distance_change_to_recon + distance_change_to_interference
+        reward_redacc =  distance_change_to_recon - distance_change_to_interference
 
         fuel_penalty_blue = self.max_fuel - self.state[0, 6]
         fuel_penalty_redacc = self.max_fuel - self.state[2, 6]
-        reward_blue -= fuel_penalty_blue * 0.1
-        reward_redacc -= fuel_penalty_redacc * 0.1
+        reward_blue -= fuel_penalty_blue * 0.05  # 减少蓝方燃料惩罚
+        reward_redacc -= fuel_penalty_redacc * 0.2  # 增加红方燃料惩罚
 
         if current_distance_to_recon <= 20:
-            reward_blue += 1000
+            reward_blue += 4000  # 增加蓝方达到目标的奖励
             done = True
         elif current_distance_to_interference <= 10:
-            reward_blue -= 1000
+            reward_blue -= 500  # 减少蓝方被干扰的惩罚
             reward_redacc += 1000
             done = True
         else:
             done = self.time >= 300 or self.state[0, 6] <= 0
 
-        reward_redacc *= 0.5
+        reward_redacc *= 0.3  # 进一步降低红方的奖励比例
 
         self.previous_distance_to_recon = current_distance_to_recon
         self.previous_distance_to_interference = current_distance_to_interference
 
         return reward_blue, reward_redacc, done
-
