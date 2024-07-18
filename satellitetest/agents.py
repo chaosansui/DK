@@ -32,7 +32,7 @@ class Critic(nn.Module):
 
 # 定义噪声模型
 class OUNoise:
-    def __init__(self, action_dim, mu=0, theta=0.15, sigma=0.3):
+    def __init__(self, action_dim, mu=0, theta=0.15, sigma=0.2):
         self.action_dim = action_dim
         self.mu = mu
         self.theta = theta
@@ -71,9 +71,12 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
+
 # 定义Agent
 class Agent:
     def __init__(self, state_dim, action_dim, replay_buffer_capacity=1000000):
+        self.state_dim = state_dim
+        self.action_dim = action_dim
         self.actor = Actor(state_dim, action_dim)
         self.critic = Critic(state_dim, action_dim)
         self.target_actor = Actor(state_dim, action_dim)
@@ -84,11 +87,6 @@ class Agent:
         self.gamma = 0.99
         self.tau = 0.005
         self.replay_buffer = ReplayBuffer(replay_buffer_capacity)
-        self.epsilon = 1.0  # 初始探索率
-        self.epsilon_decay = 0.995  # 探索率衰减
-        self.epsilon_min = 0.01  # 最小探索率
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
         # 软更新权重初始化
         self.update_target_networks(tau=1.0)
@@ -103,16 +101,10 @@ class Agent:
                 target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
     def get_action(self, state, noise_scale=0.1):
-        state = torch.FloatTensor(state.reshape(1, -1)).to(self.device)
-        action = self.actor(state).cpu().data.numpy().flatten()
-
-        if np.random.rand() < self.epsilon:
-            action += np.random.normal(0, noise_scale, size=action.shape)
-
-        action = np.clip(action, -1, 1)
-        self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)  # 动态调整探索率
-
-        return action
+        state = torch.FloatTensor(state).unsqueeze(0)
+        action = self.actor(state).detach().numpy()[0]
+        noise = noise_scale * self.noise.sample()
+        return np.clip(action + noise, -1, 1)  # 确保动作在合适的范围内
 
     def train(self, batch_size=64):
         if len(self.replay_buffer) < batch_size:
@@ -149,3 +141,35 @@ class Agent:
 
         # 软更新目标网络
         self.update_target_networks()
+
+    def checkpoint_attributes(self):
+        # 不保存buffer，太耗内存
+        return {
+            'actor': self.actor.state_dict(),
+            'critic': self.critic.state_dict(),
+            'target_actor': self.target_actor.state_dict(),
+            'target_critic': self.target_critic.state_dict(),
+            'actor_optimizer': self.actor_optimizer.state_dict(),
+            'critic_optimizer': self.critic_optimizer.state_dict(),
+            'state_dim': self.state_dim,
+            'action_dim': self.action_dim
+        }
+
+    @classmethod
+    def from_checkpoint(cls, checkpoint):
+        agent_instance = cls(
+            checkpoint['state_dim'],
+            checkpoint['action_dim']
+        )
+
+        agent_instance.actor.load_state_dict(checkpoint['actor'])
+        agent_instance.critic.load_state_dict(checkpoint['critic'])
+        agent_instance.target_actor.load_state_dict(checkpoint['target_actor'])
+        agent_instance.target_critic.load_state_dict(checkpoint['target_critic'])
+        agent_instance.actor_optimizer.load_state_dict(checkpoint["actor_optimizer"])
+        agent_instance.critic_optimizer.load_state_dict(checkpoint["critic_optimizer"])
+
+        return agent_instance
+
+    def save_checkpoint(self, path, filename='checkpoint_dqn.pt'):
+        torch.save(self.checkpoint_attributes(), path + '/' + filename)

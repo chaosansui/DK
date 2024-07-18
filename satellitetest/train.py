@@ -13,7 +13,7 @@ def test():
     # 参数设置
     state_dim = 21
     action_dim = 6  # 2个卫星，每个3维动作（加速度ax, ay, az）
-    max_episodes = 500
+    max_episodes = 200
     max_steps = 100
     batch_size = 64
     replay_buffer_capacity = 1000000
