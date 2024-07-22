@@ -17,6 +17,8 @@ class SatelliteEnv:
         self.action_dim = 6  # 2个卫星（我方和敌方干扰卫星），每个3维动作（加速度ax, ay, az）
         self.max_fuel = 100.0  # 最大燃料利用率
         self.max_acceleration = 0.1  # 最大加速度
+        self.perception_delay_steps = 10  # 感知延迟步长
+        self.continuous_maneuver_threshold = 3  # 连续变轨阈值
         self.reset()
 
     def reset(self):
@@ -37,6 +39,14 @@ class SatelliteEnv:
         self.state[0, 6] = self.max_fuel  # 我方卫星燃料初始状态
         self.state[2, 6] = self.max_fuel  # 敌方干扰卫星燃料初始状态
         self.time = 0
+
+        self.previous_blue_acceleration = np.zeros(3)
+        self.previous_redacc_acceleration = np.zeros(3)
+        self.blue_continuous_maneuver_steps = 0
+        self.redacc_continuous_maneuver_steps = 0
+        self.blue_delay_steps = self.perception_delay_steps
+        self.redacc_delay_steps = self.perception_delay_steps
+
         return self.state.flatten()
 
     def step(self, actions):
@@ -51,19 +61,46 @@ class SatelliteEnv:
         # 敌方干扰卫星加速度
         redacc_acceleration = actions[1]
 
-        # 更新位置（使用更精确的物理模型）
-        self.state[0, :3] += self.state[0, 3:6] + 0.5 * blue_acceleration  # 我方卫星位置更新
-        self.state[1, :3] += self.state[1, 3:6]  # 敌方侦察卫星位置更新
-        self.state[2, :3] += self.state[2, 3:6] + 0.5 * redacc_acceleration  # 敌方干扰卫星位置更新
+        # 检查我方卫星的连续变轨情况
+        if np.array_equal(blue_acceleration, self.previous_blue_acceleration):
+            self.blue_continuous_maneuver_steps = 0
+        else:
+            self.blue_continuous_maneuver_steps += 1
+            if self.blue_continuous_maneuver_steps >= self.continuous_maneuver_threshold:
+                self.blue_delay_steps = 30
 
-        # 更新速度
-        self.state[0, 3:6] += blue_acceleration  # 我方卫星速度更新
-        self.state[2, 3:6] += redacc_acceleration  # 敌方干扰卫星速度更新
+        # 检查敌方干扰卫星的连续变轨情况
+        if np.array_equal(redacc_acceleration, self.previous_redacc_acceleration):
+            self.redacc_continuous_maneuver_steps = 0
+        else:
+            self.redacc_continuous_maneuver_steps += 1
+            if self.redacc_continuous_maneuver_steps >= self.continuous_maneuver_threshold:
+                self.redacc_delay_steps = 30
+
+        # 更新位置和速度
+        self.state[0, :3] += self.state[0, 3:6]  # 我方卫星位置更新
+        self.state[1, :3] += self.state[1, 3:6]  # 敌方侦察卫星位置更新
+        self.state[2, :3] += self.state[2, 3:6]  # 敌方干扰卫星位置更新
+
+        # 使用延迟更新位置和速度
+        if self.blue_delay_steps == 0:
+            self.state[0, 3:6] += blue_acceleration
+        else:
+            self.blue_delay_steps -= 1
+
+        if self.redacc_delay_steps == 0:
+            self.state[2, 3:6] += redacc_acceleration
+        else:
+            self.redacc_delay_steps -= 1
 
         # 更新燃料
         self.state[0, 6] -= np.linalg.norm(blue_acceleration)  # 我方卫星燃料消耗
         self.state[2, 6] -= np.linalg.norm(redacc_acceleration)  # 敌方干扰卫星燃料消耗
         self.state[:, 6] = np.clip(self.state[:, 6], 0, self.max_fuel)  # 确保燃料不小于零
+
+        # 记录当前加速度
+        self.previous_blue_acceleration = blue_acceleration
+        self.previous_redacc_acceleration = redacc_acceleration
 
         # 增加时间步长
         self.time += 1
@@ -89,18 +126,22 @@ class SatelliteEnv:
         distance_change_to_interference = current_distance_to_interference - previous_distance_to_interference
 
         # 调整后的奖励函数逻辑
-        reward_blue = 5 - distance_change_to_recon + distance_change_to_interference
-        reward_redacc = 5+ distance_change_to_recon - distance_change_to_interference
+        reward_blue = distance_change_to_recon + distance_change_to_interference
+        reward_redacc = distance_change_to_recon - distance_change_to_interference
 
         fuel_penalty_blue = self.max_fuel - self.state[0, 6]
         fuel_penalty_redacc = self.max_fuel - self.state[2, 6]
         reward_blue -= fuel_penalty_blue * 0.05  # 减少蓝方燃料惩罚
         reward_redacc -= fuel_penalty_redacc * 0.2  # 增加红方燃料惩罚
 
+        # 判断是否形成三点一线
+        if self.is_collinear(self.state[0, :3], self.state[1, :3], self.state[2, :3]):
+            reward_blue -= 1000  # 蓝方形成三点一线的惩罚
+
         if current_distance_to_recon <= 20:
             reward_blue += 4000  # 增加蓝方达到目标的奖励
             done = True
-        elif current_distance_to_interference <= 10:
+        elif current_distance_to_interference == current_distance_to_recon / 2:
             reward_blue -= 500  # 减少蓝方被干扰的惩罚
             reward_redacc += 1000
             done = True
@@ -113,3 +154,14 @@ class SatelliteEnv:
         self.previous_distance_to_interference = current_distance_to_interference
 
         return reward_blue, reward_redacc, done
+
+    def is_collinear(self, p1, p2, p3, tol=1e-6):
+        # 计算向量
+        v1 = p2 - p1
+        v2 = p3 - p1
+        # 计算向量的叉积
+        cross_product = np.cross(v1, v2)
+        # 叉积的模
+        norm_cross_product = np.linalg.norm(cross_product)
+        # 如果叉积的模接近于零，则说明共线
+        return norm_cross_product < tol

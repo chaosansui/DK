@@ -26,6 +26,7 @@ def satellite_blue_run(time:Time,orbit:Orbit):
         # print(f"位置：{r}")
         # print(f"速度：{v}")
         # print("---")
+        # import sys;sys.exit(0)
 
         # 更新时间
         current_time += time_step_as_timedelta
