@@ -9,7 +9,7 @@ from orbits.orbit_blue import generate_blue_orbit
 from satellitetest.orbits.orbit_redacc import generate_redacc_orbit
 from test import create
 from specific_time import specific_time
-
+import matplotlib.pyplot as plt
 
 class SatelliteEnv:
     def __init__(self):
@@ -22,22 +22,20 @@ class SatelliteEnv:
         self.reset()
 
     def reset(self):
-        # 从外部函数获取卫星轨道、位置、速度等信息
         red_orb, blue_orb, redacc_orb, delta_v = create()
         time, blue_location, blue_vector = satellite_blue_run(specific_time, blue_orb)
         time, red_location, red_vector = satellite_red_run(specific_time, red_orb)
         time, redacc_location, redacc_vector = satellite_redacc_run(specific_time, redacc_orb)
 
-        # 初始化状态
         self.state = np.zeros((3, 7))
-        self.state[0, :3] = blue_location  # 我方卫星初始位置
-        self.state[1, :3] = red_location  # 敌方侦察卫星初始位置
-        self.state[2, :3] = redacc_location  # 敌方干扰卫星初始位置
-        self.state[0, 3:6] = blue_vector  # 我方卫星初始速度
-        self.state[1, 3:6] = red_vector  # 敌方侦察卫星初始速度
-        self.state[2, 3:6] = redacc_vector  # 敌方干扰卫星初始速度
-        self.state[0, 6] = self.max_fuel  # 我方卫星燃料初始状态
-        self.state[2, 6] = self.max_fuel  # 敌方干扰卫星燃料初始状态
+        self.state[0, :3] = blue_location
+        self.state[1, :3] = red_location
+        self.state[2, :3] = redacc_location
+        self.state[0, 3:6] = blue_vector
+        self.state[1, 3:6] = red_vector
+        self.state[2, 3:6] = redacc_vector
+        self.state[0, 6] = self.max_fuel
+        self.state[2, 6] = self.max_fuel
         self.time = 0
 
         self.previous_blue_acceleration = np.zeros(3)
@@ -47,21 +45,19 @@ class SatelliteEnv:
         self.blue_delay_steps = self.perception_delay_steps
         self.redacc_delay_steps = self.perception_delay_steps
 
+        self.blue_positions = [self.state[0, :3]]
+        self.red_positions = [self.state[1, :3]]
+        self.redacc_positions = [self.state[2, :3]]
+
         return self.state.flatten()
 
     def step(self, actions):
-        # 动作是一个 (6,) 的数组，我方卫星和敌方干扰卫星的加速度 (ax, ay, az)
-        actions = np.array(actions).reshape((2, 3))  # 确保动作数组为 (2, 3)
-
-        # 将动作值裁剪到 [-max_acceleration, max_acceleration] 范围内
+        actions = np.array(actions).reshape((2, 3))
         actions = np.clip(actions, -self.max_acceleration, self.max_acceleration)
 
-        # 我方卫星加速度
         blue_acceleration = actions[0]
-        # 敌方干扰卫星加速度
         redacc_acceleration = actions[1]
 
-        # 检查我方卫星的连续变轨情况
         if np.array_equal(blue_acceleration, self.previous_blue_acceleration):
             self.blue_continuous_maneuver_steps = 0
         else:
@@ -69,7 +65,6 @@ class SatelliteEnv:
             if self.blue_continuous_maneuver_steps >= self.continuous_maneuver_threshold:
                 self.blue_delay_steps = 30
 
-        # 检查敌方干扰卫星的连续变轨情况
         if np.array_equal(redacc_acceleration, self.previous_redacc_acceleration):
             self.redacc_continuous_maneuver_steps = 0
         else:
@@ -77,12 +72,10 @@ class SatelliteEnv:
             if self.redacc_continuous_maneuver_steps >= self.continuous_maneuver_threshold:
                 self.redacc_delay_steps = 30
 
-        # 更新位置和速度
-        self.state[0, :3] += self.state[0, 3:6]  # 我方卫星位置更新
-        self.state[1, :3] += self.state[1, 3:6]  # 敌方侦察卫星位置更新
-        self.state[2, :3] += self.state[2, 3:6]  # 敌方干扰卫星位置更新
+        self.state[0, :3] += self.state[0, 3:6]
+        self.state[1, :3] += self.state[1, 3:6]
+        self.state[2, :3] += self.state[2, 3:6]
 
-        # 使用延迟更新位置和速度
         if self.blue_delay_steps == 0:
             self.state[0, 3:6] += blue_acceleration
         else:
@@ -93,22 +86,21 @@ class SatelliteEnv:
         else:
             self.redacc_delay_steps -= 1
 
-        # 更新燃料
-        self.state[0, 6] -= np.linalg.norm(blue_acceleration)  # 我方卫星燃料消耗
-        self.state[2, 6] -= np.linalg.norm(redacc_acceleration)  # 敌方干扰卫星燃料消耗
-        self.state[:, 6] = np.clip(self.state[:, 6], 0, self.max_fuel)  # 确保燃料不小于零
+        self.state[0, 6] -= np.linalg.norm(blue_acceleration)
+        self.state[2, 6] -= np.linalg.norm(redacc_acceleration)
+        self.state[:, 6] = np.clip(self.state[:, 6], 0, self.max_fuel)
 
-        # 记录当前加速度
         self.previous_blue_acceleration = blue_acceleration
         self.previous_redacc_acceleration = redacc_acceleration
 
-        # 增加时间步长
         self.time += 1
 
-        # 计算奖励和是否结束
         reward_blue, reward_redacc, done = self.calculate_reward()
 
-        # 返回新的状态、奖励和是否结束
+        self.blue_positions.append(self.state[0, :3])
+        self.red_positions.append(self.state[1, :3])
+        self.redacc_positions.append(self.state[2, :3])
+
         return self.state.flatten(), (reward_blue, reward_redacc), done, {}
 
     def calculate_reward(self):
@@ -125,30 +117,28 @@ class SatelliteEnv:
         distance_change_to_recon = current_distance_to_recon - previous_distance_to_recon
         distance_change_to_interference = current_distance_to_interference - previous_distance_to_interference
 
-        # 调整后的奖励函数逻辑
         reward_blue = distance_change_to_recon + distance_change_to_interference
         reward_redacc = distance_change_to_recon - distance_change_to_interference
 
         fuel_penalty_blue = self.max_fuel - self.state[0, 6]
         fuel_penalty_redacc = self.max_fuel - self.state[2, 6]
-        reward_blue -= fuel_penalty_blue * 0.05  # 减少蓝方燃料惩罚
-        reward_redacc -= fuel_penalty_redacc * 0.2  # 增加红方燃料惩罚
+        reward_blue -= fuel_penalty_blue * 0.05
+        reward_redacc -= fuel_penalty_redacc * 0.2
 
-        # 判断是否形成三点一线
         if self.is_collinear(self.state[0, :3], self.state[1, :3], self.state[2, :3]):
-            reward_blue -= 1000  # 蓝方形成三点一线的惩罚
+            reward_blue -= 1000
 
         if current_distance_to_recon <= 20:
-            reward_blue += 4000  # 增加蓝方达到目标的奖励
+            reward_blue += 4000
             done = True
         elif current_distance_to_interference == current_distance_to_recon / 2:
-            reward_blue -= 500  # 减少蓝方被干扰的惩罚
+            reward_blue -= 500
             reward_redacc += 1000
             done = True
         else:
             done = self.time >= 300 or self.state[0, 6] <= 0
 
-        reward_redacc *= 0.3  # 进一步降低红方的奖励比例
+        reward_redacc *= 0.3
 
         self.previous_distance_to_recon = current_distance_to_recon
         self.previous_distance_to_interference = current_distance_to_interference
@@ -156,12 +146,29 @@ class SatelliteEnv:
         return reward_blue, reward_redacc, done
 
     def is_collinear(self, p1, p2, p3, tol=1e-6):
-        # 计算向量
         v1 = p2 - p1
         v2 = p3 - p1
-        # 计算向量的叉积
         cross_product = np.cross(v1, v2)
-        # 叉积的模
         norm_cross_product = np.linalg.norm(cross_product)
-        # 如果叉积的模接近于零，则说明共线
         return norm_cross_product < tol
+
+
+def plot_trajectories(trajectories, filename='trajectories.png'):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    colors = ['b', 'r', 'g']
+    labels = ['Blue Satellite', 'Red Satellite', 'Redacc Satellite']
+
+    for idx, trajectory in enumerate(trajectories):
+        positions = np.array(trajectory)
+        ax.plot(positions[:, 0], positions[:, 1], positions[:, 2], color=colors[idx], label=labels[idx])
+        ax.scatter(positions[0, 0], positions[0, 1], positions[0, 2], color=colors[idx], marker='o')  # 初始位置标记
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_title('Satellite Trajectories')
+    ax.legend()
+    plt.savefig(filename)
+    plt.show()

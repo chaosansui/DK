@@ -2,12 +2,11 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from agents import Agent, ReplayBuffer
-from satellite_env import SatelliteEnv
+from satellite_env import SatelliteEnv, plot_trajectories
 import logging
 
 # 设置日志记录
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 def test():
     # 参数设置
@@ -22,14 +21,23 @@ def test():
     env = SatelliteEnv()
     agent_blue = Agent(state_dim, action_dim // 2)  # 设置合适的学习率
     agent_redacc = Agent(state_dim, action_dim // 2)
-
     rewards_blue = []
     rewards_redacc = []
+
+    # 用于存储轨迹的列表
+    trajectories_blue = []
+    trajectories_red = []
+    trajectories_redacc = []
 
     for episode in range(max_episodes):
         state = env.reset()
         episode_reward_blue = 0
         episode_reward_redacc = 0
+
+        # 存储每个episode的轨迹
+        trajectory_blue = []
+        trajectory_red = []
+        trajectory_redacc = []
 
         epsilon = max(0.1, 1.0 - episode / (max_episodes / 1.5))  # 让epsilon下降得更慢
 
@@ -55,6 +63,11 @@ def test():
             episode_reward_blue += reward_blue
             episode_reward_redacc += reward_redacc
 
+            # 记录轨迹
+            trajectory_blue.append(state[:3])
+            trajectory_red.append(state[3:6])
+            trajectory_redacc.append(state[6:9])
+
             if done:
                 break
 
@@ -63,11 +76,17 @@ def test():
         rewards_blue.append(episode_reward_blue)
         rewards_redacc.append(episode_reward_redacc)
 
+        trajectories_blue.append(trajectory_blue)
+        trajectories_red.append(trajectory_red)
+        trajectories_redacc.append(trajectory_redacc)
+
+    # 保存训练好的模型
     torch.save(agent_blue.actor.state_dict(), 'actor_blue_final.pth')
     torch.save(agent_blue.critic.state_dict(), 'critic_blue_final.pth')
     torch.save(agent_redacc.actor.state_dict(), 'actor_redacc_final.pth')
     torch.save(agent_redacc.critic.state_dict(), 'critic_redacc_final.pth')
 
+    # 绘制奖励曲线
     plt.figure(figsize=(12, 6))
     plt.plot(rewards_blue, label='Blue Agent')
     plt.plot(rewards_redacc, label='Redacc Agent')
@@ -77,3 +96,7 @@ def test():
     plt.legend()
     plt.savefig('reward_curve.png')
     plt.show()
+
+    # 生成并保存轨迹图
+    plot_trajectories([trajectories_blue, trajectories_red, trajectories_redacc], filename='trajectories.png')
+
