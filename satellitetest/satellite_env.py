@@ -10,6 +10,7 @@ from satellitetest.orbits.orbit_redacc import generate_redacc_orbit
 from test import create
 from specific_time import specific_time
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 class SatelliteEnv:
     def __init__(self):

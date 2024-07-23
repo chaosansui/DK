@@ -25,9 +25,9 @@ def test():
     rewards_redacc = []
 
     # 用于存储轨迹的列表
-    trajectories_blue = []
-    trajectories_red = []
-    trajectories_redacc = []
+    all_trajectories_blue = []
+    all_trajectories_red = []
+    all_trajectories_redacc = []
 
     for episode in range(max_episodes):
         state = env.reset()
@@ -65,8 +65,8 @@ def test():
 
             # 记录轨迹
             trajectory_blue.append(state[:3])
-            trajectory_red.append(state[3:6])
-            trajectory_redacc.append(state[6:9])
+            trajectory_red.append(state[7:10])
+            trajectory_redacc.append(state[14:17])
 
             if done:
                 break
@@ -76,9 +76,9 @@ def test():
         rewards_blue.append(episode_reward_blue)
         rewards_redacc.append(episode_reward_redacc)
 
-        trajectories_blue.append(trajectory_blue)
-        trajectories_red.append(trajectory_red)
-        trajectories_redacc.append(trajectory_redacc)
+        all_trajectories_blue.extend(trajectory_blue)
+        all_trajectories_red.extend(trajectory_red)
+        all_trajectories_redacc.extend(trajectory_redacc)
 
     # 保存训练好的模型
     torch.save(agent_blue.actor.state_dict(), 'actor_blue_final.pth')
@@ -98,5 +98,5 @@ def test():
     plt.show()
 
     # 生成并保存轨迹图
-    plot_trajectories([trajectories_blue, trajectories_red, trajectories_redacc], filename='trajectories.png')
+    plot_trajectories([all_trajectories_blue, all_trajectories_red, all_trajectories_redacc], filename='trajectories.png')
 
