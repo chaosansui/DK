@@ -16,8 +16,11 @@ class SatelliteEnv:
     def __init__(self):
         self.state_dim = 21  # 3个卫星，每个7维（位置3维+速度3维+燃料1维）
         self.action_dim = 6  # 2个卫星（我方和敌方干扰卫星），每个3维动作（加速度ax, ay, az）
-        self.max_fuel = 100.0  # 最大燃料利用率
-        self.max_acceleration = 0.1  # 最大加速度
+        self.max_fuel = 1000.0  # 最大燃料利用率（单位：kg）
+        self.blue_max_acceleration = 0.2  # 蓝方卫星最大加速度
+        self.redacc_max_acceleration = 0.58  # 红方干扰卫星最大加速度
+        self.blue_fuel_consumption_per_move = 0.0351  # 蓝方卫星每位移一次的燃料消耗
+        self.redacc_fuel_consumption_per_move = 0.102  # 红方干扰卫星每位移一次的燃料消耗
         self.perception_delay_steps = 10  # 感知延迟步长
         self.continuous_maneuver_threshold = 3  # 连续变轨阈值
         self.reset()
@@ -54,10 +57,11 @@ class SatelliteEnv:
 
     def step(self, actions):
         actions = np.array(actions).reshape((2, 3))
-        actions = np.clip(actions, -self.max_acceleration, self.max_acceleration)
 
-        blue_acceleration = actions[0]
-        redacc_acceleration = actions[1]
+        # 蓝方卫星动作裁剪到 [-blue_max_acceleration, blue_max_acceleration] 范围内
+        blue_acceleration = np.clip(actions[0], -self.blue_max_acceleration, self.blue_max_acceleration)
+        # 红方干扰卫星动作裁剪到 [-redacc_max_acceleration, redacc_max_acceleration] 范围内
+        redacc_acceleration = np.clip(actions[1], -self.redacc_max_acceleration, self.redacc_max_acceleration)
 
         if np.array_equal(blue_acceleration, self.previous_blue_acceleration):
             self.blue_continuous_maneuver_steps = 0
@@ -79,16 +83,16 @@ class SatelliteEnv:
 
         if self.blue_delay_steps == 0:
             self.state[0, 3:6] += blue_acceleration
+            self.state[0, 6] -= self.blue_fuel_consumption_per_move
         else:
             self.blue_delay_steps -= 1
 
         if self.redacc_delay_steps == 0:
             self.state[2, 3:6] += redacc_acceleration
+            self.state[2, 6] -= self.redacc_fuel_consumption_per_move
         else:
             self.redacc_delay_steps -= 1
 
-        self.state[0, 6] -= np.linalg.norm(blue_acceleration)
-        self.state[2, 6] -= np.linalg.norm(redacc_acceleration)
         self.state[:, 6] = np.clip(self.state[:, 6], 0, self.max_fuel)
 
         self.previous_blue_acceleration = blue_acceleration
@@ -152,7 +156,6 @@ class SatelliteEnv:
         cross_product = np.cross(v1, v2)
         norm_cross_product = np.linalg.norm(cross_product)
         return norm_cross_product < tol
-
 
 def plot_trajectories(trajectories, filename='trajectories.png'):
     fig = plt.figure()

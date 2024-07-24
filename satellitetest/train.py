@@ -94,9 +94,9 @@ def test():
     plt.ylabel('Total Reward')
     plt.title('Total Reward per Episode')
     plt.legend()
-    plt.savefig('reward_curve.png')
+    plt.savefig('image/reward_curve.png')
     plt.show()
 
     # 生成并保存轨迹图
-    plot_trajectories([all_trajectories_blue, all_trajectories_red, all_trajectories_redacc], filename='trajectories.png')
+    plot_trajectories([all_trajectories_blue, all_trajectories_red, all_trajectories_redacc], filename='image/trajectories.png')
 
