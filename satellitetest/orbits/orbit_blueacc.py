@@ -5,7 +5,7 @@ from poliastro.twobody import Orbit
 from satellitetest.interface.orbits_untils import OrbitalElementsInterface
 
 
-def generate_red_orbit(orbital_elements: OrbitalElementsInterface) -> Orbit:
+def generate_blueacc_orbit(orbital_elements: OrbitalElementsInterface) -> Orbit:
    # 确保必要的轨道元素已经被设置
    if (orbital_elements.get_semi_major_axis().value == 0 or
            orbital_elements.get_inclination().value == 0 or
@@ -22,7 +22,8 @@ def generate_red_orbit(orbital_elements: OrbitalElementsInterface) -> Orbit:
    epoch = orbital_elements.get_specific_time()
 
    # 创建轨道
-   red_orbit = Orbit.from_classical(Earth, semi_major_axis, eccentricity, inclination, raan, arg_periapsis,
+   blueacc_orbit = Orbit.from_classical(Earth, semi_major_axis, eccentricity, inclination, raan, arg_periapsis,
                                      true_anomaly, epoch=epoch)
 
-   return red_orbit
+   return blueacc_orbit
+

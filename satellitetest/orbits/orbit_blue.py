@@ -1,29 +1,20 @@
 from astropy import units as u
 from astropy.time import Time
-from poliastro.bodies import Earth
+from poliastro.bodies import Sun, Earth
 from poliastro.twobody import Orbit
 from satellitetest.interface.orbits_untils import OrbitalElementsInterface
 
 
-def generate_blue_orbit(orbital_elements: OrbitalElementsInterface) -> Orbit:
-   # 确保必要的轨道元素已经被设置
-   if (orbital_elements.get_semi_major_axis().value == 0 or
-           orbital_elements.get_inclination().value == 0 or
-           orbital_elements.get_specific_time() is None):
-      raise ValueError("Semi-major axis, inclination, and specific time must be set.")
-
-   # 获取轨道元素
-   semi_major_axis = orbital_elements.get_semi_major_axis()
-   eccentricity = orbital_elements.get_eccentricity()
-   inclination = orbital_elements.get_inclination()
-   raan = orbital_elements.get_raan()
-   arg_periapsis = orbital_elements.get_arg_periapsis()
-   true_anomaly = orbital_elements.get_true_anomaly()
-   epoch = orbital_elements.get_specific_time()
-
-   # 创建轨道
-   blue_orbit = Orbit.from_classical(Earth, semi_major_axis, eccentricity, inclination, raan, arg_periapsis,
-                                     true_anomaly, epoch=epoch)
-
-   return blue_orbit
-
+#该轨道倾角为57度 335km*758km所生成的轨道
+def create_satellite_blue_orbit():
+    a = 546.5 << u.km
+    ecc = 0.01 << u.one
+    inc = 57 << u.deg
+    raan = 0 << u.deg
+    argp = 0 << u.deg
+    nu = 0 << u.deg
+    # 设置全局时间
+    specific_time = Time("2022-01-01T00:00:00", scale="utc")
+    OrbitalElementsInterface.set_specific_time(specific_time)
+    blue_orb = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu,epoch=specific_time)
+    return blue_orb

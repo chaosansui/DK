@@ -1,9 +1,10 @@
 from astropy.time import Time, TimeDelta
 from astropy import units as u
 from poliastro.twobody import Orbit, orbit
-def satellite_red_run(time:Time,orbit:Orbit):
+
+def satellite_blueacc_run(time:Time,orbit:Orbit):
     # 创建轨道对象
-    red_orbit =orbit
+    blueacc_orbit =orbit
 
     # 设置初始推进时间间隔（例如，每秒推进一次）
     time_step = 1 * u.second
@@ -12,19 +13,20 @@ def satellite_red_run(time:Time,orbit:Orbit):
     time_step_as_timedelta = TimeDelta(time_step.to(u.s).value, format='sec')
 
     # 循环推进轨道并输出信息
-    current_time = red_orbit.epoch
+    current_time = blueacc_orbit.epoch
     while True:
         # 推进轨道
-        red_orbit = red_orbit.propagate(current_time + time_step_as_timedelta)
+        blue_orbit = blueacc_orbit.propagate(current_time + time_step_as_timedelta)
 
         # 获取位置和速度
-        r, v = red_orbit.rv()
+        r, v = blueacc_orbit.rv()
 
         # 输出时间、位置和速度
         # print(f"时间：{current_time}")
         # print(f"位置：{r}")
         # print(f"速度：{v}")
         # print("---")
+        # import sys;sys.exit(0)
 
         # 更新时间
         current_time += time_step_as_timedelta
