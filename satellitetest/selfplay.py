@@ -134,7 +134,7 @@ class PSRO:
                     break
 
             logging.info(
-                f"Agent Blue Train Episode {episode}, Blue Reward: {episode_reward_blue}, Redacc Reward: {episode_reward_redacc}")
+                f"Agent Red Train Episode {episode}, Red Reward: {episode_reward_blue}, Blueacc Reward: {episode_reward_redacc}")
 
             # # 记录每个episode的总奖励
             # rewards_blue.append(episode_reward_blue)
@@ -186,7 +186,7 @@ class PSRO:
                     break
 
             logging.info(
-                f"Agent Red Train Episode {episode}, Blue Reward: {episode_reward_blue}, Redacc Reward: {episode_reward_redacc}")
+                f"Agent Blueacc Train Episode {episode}, Red Reward: {episode_reward_blue}, Blueacc Reward: {episode_reward_redacc}")
 
             # # 记录每个episode的总奖励
             # rewards_blue.append(episode_reward_blue)

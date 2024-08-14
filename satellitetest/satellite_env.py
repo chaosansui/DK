@@ -1,6 +1,11 @@
+import logging
+import os
+from poliastro.plotting import OrbitPlotter
 import numpy as np
 from poliastro.twobody import Orbit
 from astropy.time import Time, TimeDelta
+import plotly.graph_objects as go
+
 from satellites.satellite_blueacc import satellite_blueacc_run
 from satellites.satellite_red import satellite_red_run
 from satellites.satellite_blue import satellite_blue_run
@@ -12,21 +17,27 @@ from specific_time import specific_time
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.cm as cm
+from poliastro.twobody import Orbit
+from astropy import units as u
+from astropy.time import Time
+from poliastro.bodies import Earth
+from plotly.subplots import make_subplots
 
 class SatelliteEnv:
     def __init__(self):
         self.state_dim = 21  # 3个卫星，每个7维（位置3维+速度3维+燃料1维）
         self.action_dim = 6  # 2个卫星（我方和敌方干扰卫星），每个3维动作（加速度ax, ay, az）
         self.max_fuel = 1000.0  # 最大燃料利用率（单位：kg）
-        self.red_max_acceleration = 0.2  # 我方卫星最大加速度
-        self.blueacc_max_acceleration = 0.58  # 敌方干扰卫星最大加速度
-        self.red_fuel_consumption_per_move = 0.0351  # 我方卫星每位移一次的燃料消耗
-        self.blueacc_fuel_consumption_per_move = 0.102  # 敌方干扰卫星每位移一次的燃料消耗
+        self.red_max_acceleration = np.array([0.2, 0.2, 0.2])  # 我方卫星最大加速度（3维）
+        self.blueacc_max_acceleration = np.array([0.58, 0.58, 0.58])  # 敌方干扰卫星最大加速度（3维）
+        self.red_fuel_consumption_per_move = np.array([0.0351, 0.0351, 0.0351])
+        self.blueacc_fuel_consumption_per_move = np.array([0.102, 0.102, 0.102])
         self.perception_delay_steps = 10  # 感知延迟步长
         self.continuous_maneuver_threshold = 3  # 连续变轨阈值
         self.reset()
 
     def reset(self):
+        # 生成初始轨道
         blue_orb, blueacc_orb, red_orb, delta_v = create()
         time, blue_location, blue_vector = satellite_blue_run(specific_time, blue_orb)
         time, red_location, red_vector = satellite_red_run(specific_time, red_orb)
@@ -50,6 +61,7 @@ class SatelliteEnv:
         self.red_delay_steps = self.perception_delay_steps
         self.blueacc_delay_steps = self.perception_delay_steps
 
+        # 初始化轨迹记录
         self.red_positions = [self.state[0, :3]]
         self.blue_positions = [self.state[1, :3]]
         self.blueacc_positions = [self.state[2, :3]]
@@ -82,13 +94,13 @@ class SatelliteEnv:
 
         if self.red_delay_steps == 0:
             self.state[0, 3:6] += red_acceleration
-            self.state[0, 6] -= self.red_fuel_consumption_per_move
+            self.state[0, 6] -= np.sum(self.red_fuel_consumption_per_move * np.abs(red_acceleration))
         else:
             self.red_delay_steps -= 1
 
         if self.blueacc_delay_steps == 0:
             self.state[2, 3:6] += blueacc_acceleration
-            self.state[2, 6] -= self.blueacc_fuel_consumption_per_move
+            self.state[2, 6] -= np.sum(self.blueacc_fuel_consumption_per_move * np.abs(blueacc_acceleration))
         else:
             self.blueacc_delay_steps -= 1
 
@@ -124,10 +136,15 @@ class SatelliteEnv:
         reward_red = distance_change_to_recon + distance_change_to_interference
         reward_blueacc = distance_change_to_recon - distance_change_to_interference
 
-        fuel_penalty_red = self.max_fuel - self.state[0, 6]
-        fuel_penalty_blueacc = self.max_fuel - self.state[2, 6]
-        reward_red -= fuel_penalty_red * 0.05
-        reward_blueacc -= fuel_penalty_blueacc * 0.2
+        fuel_used_red = self.max_fuel - self.state[0, 6]
+        fuel_used_blueacc = self.max_fuel - self.state[2, 6]
+
+        if fuel_used_red < fuel_used_blueacc:
+            reward_red += 10
+            reward_blueacc -= 10
+        else:
+            reward_red -= 10
+            reward_blueacc += 10
 
         if self.is_collinear(self.state[0, :3], self.state[1, :3], self.state[2, :3]):
             reward_red -= 1000
@@ -156,39 +173,37 @@ class SatelliteEnv:
         norm_cross_product = np.linalg.norm(cross_product)
         return norm_cross_product < tol
 
-def plot_trajectories(trajectories, filename='trajectories.png'):
-    fig = plt.figure(figsize=(12, 6))
 
-    # 3D 图
-    ax3d = fig.add_subplot(121, projection='3d')
+def plot_orbit_from_vectors(trajectories, velocities, labels, colors, filename):
+    fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'scene'}]])
 
-    # 定义三种颜色
-    colors = ['r', 'b', 'g']  # 红色，我方卫星，蓝色，敌方侦察卫星，绿色，敌方干扰卫星
-    labels = ['Red Satellite', 'Blue Satellite', 'Blueacc Satellite']  # 图例标签
+    for trajectory, velocity, label, color in zip(trajectories, velocities, labels, colors):
+        try:
+            # 确保每个轨迹和速度是三维的
+            r = trajectory * u.km
+            v = velocity * u.km / u.s
 
-    for idx, trajectory in enumerate(trajectories):
-        positions = np.array(trajectory)
-        ax3d.plot(positions[:, 0], positions[:, 1], positions[:, 2], color=colors[idx], label=labels[idx])
-        # 标记初始位置
-        ax3d.scatter(positions[:, 0], positions[:, 1], positions[:, 2], color=colors[idx], s=50, marker='o')
+            print(f"Plotting {label}: Position {r}, Velocity {v}")
 
-    ax3d.set_xlabel('X')
-    ax3d.set_ylabel('Y')
-    ax3d.set_zlabel('Z')
-    ax3d.legend()
+            # 从矢量创建轨道
+            orbit = Orbit.from_vectors(Earth, r, v)
 
-    # 2D 图
-    ax2d = fig.add_subplot(122)
-    for idx, trajectory in enumerate(trajectories):
-        positions = np.array(trajectory)
-        ax2d.plot(positions[:, 0], positions[:, 1], color=colors[idx], label=labels[idx])
-        # 标记初始位置
-        ax2d.scatter(positions[:, 0], positions[:, 1], color=colors[idx], s=50, marker='o')
+            # 进行绘图
+            fig.add_trace(go.Scatter3d(
+                x=orbit.sample().x.value,
+                y=orbit.sample().y.value,
+                z=orbit.sample().z.value,
+                mode='lines',
+                name=label,
+                line=dict(color=color)
+            ))
 
-    ax2d.set_xlabel('X')
-    ax2d.set_ylabel('Y')
-    ax2d.legend()
+        except Exception as e:
+            logging.error(f"Error processing orbit for {label}: {e}")
 
-    plt.tight_layout()
-    plt.savefig(filename)
-    plt.show()
+    fig.update_layout(scene=dict(
+        xaxis_title='X (km)',
+        yaxis_title='Y (km)',
+        zaxis_title='Z (km)'
+    ))
+    fig.write_html(filename)

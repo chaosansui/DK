@@ -1,12 +1,14 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from agents import Agent, ReplayBuffer
-from satellite_env import SatelliteEnv, plot_trajectories
+from agents import Agent
+from satellite_env import SatelliteEnv, plot_orbit_from_vectors
 import logging
+import os
 
 # 设置日志记录
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 def test():
     # 参数设置
@@ -15,7 +17,6 @@ def test():
     max_episodes = 200
     max_steps = 100
     batch_size = 64
-    replay_buffer_capacity = 1000000
 
     # 环境和智能体初始化
     env = SatelliteEnv()
@@ -24,25 +25,10 @@ def test():
     rewards_red = []
     rewards_blueacc = []
 
-    # 用于存储轨迹的列表
-    all_trajectories_red = []
-    all_trajectories_blue = []
-    all_trajectories_blueacc = []
-
-    # 用于存储前10个回合的轨迹
-    first_10_episodes_red = []
-    first_10_episodes_blue = []
-    first_10_episodes_blueacc = []
-
     for episode in range(max_episodes):
         state = env.reset()
         episode_reward_red = 0
         episode_reward_blueacc = 0
-
-        # 存储每个episode的轨迹
-        trajectory_red = []
-        trajectory_blue = []
-        trajectory_blueacc = []
 
         epsilon = max(0.1, 1.0 - episode / (max_episodes / 1.5))  # 让epsilon下降得更慢
 
@@ -68,11 +54,6 @@ def test():
             episode_reward_red += reward_red
             episode_reward_blueacc += reward_blueacc
 
-            # 记录轨迹
-            trajectory_red.append(state[:3])
-            trajectory_blue.append(state[7:10])
-            trajectory_blueacc.append(state[14:17])
-
             if done:
                 break
 
@@ -81,21 +62,38 @@ def test():
         rewards_red.append(episode_reward_red)
         rewards_blueacc.append(episode_reward_blueacc)
 
-        all_trajectories_red.extend(trajectory_red)
-        all_trajectories_blue.extend(trajectory_blue)
-        all_trajectories_blueacc.extend(trajectory_blueacc)
+        # 使用最后一个步长的状态计算轨道
+        final_trajectories = [
+            np.array(state[:3]),     # Red Satellite
+            np.array(state[7:10]),   # Recon Satellite
+            np.array(state[14:17])   # Jam Satellite
+        ]
 
-        # 记录前10个回合的轨迹
-        if episode < 10:
-            first_10_episodes_red.extend(trajectory_red)
-            first_10_episodes_blue.extend(trajectory_blue)
-            first_10_episodes_blueacc.extend(trajectory_blueacc)
+        final_velocities = [
+            np.array(state[3:6]),    # Red Satellite Velocity
+            np.array(state[10:13]),  # Recon Satellite Velocity
+            np.array(state[17:20])   # Jam Satellite Velocity
+        ]
+
+        # 确保每个向量都是一维的
+        final_trajectories = [np.atleast_1d(traj) for traj in final_trajectories]
+        final_velocities = [np.atleast_1d(vel)   for vel in final_velocities]
+
+        # 绘制每个回合结束时的轨道
+        plot_orbit_from_vectors(
+            trajectories=final_trajectories,
+            velocities=final_velocities,
+            labels=['Red Satellite', 'Recon Satellite', 'Jam Satellite'],
+            colors=['red', 'green', 'blue'],
+            filename=f'plots/orbits_episode_{episode}.html'  # 保存每个回合的轨道到不同的文件
+        )
 
     # 保存训练好的模型
-    torch.save(agent_red.actor.state_dict(), 'actor_red_final.pth')
-    torch.save(agent_red.critic.state_dict(), 'critic_red_final.pth')
-    torch.save(agent_blueacc.actor.state_dict(), 'actor_blueacc_final.pth')
-    torch.save(agent_blueacc.critic.state_dict(), 'critic_blueacc_final.pth')
+    os.makedirs('model', exist_ok=True)
+    torch.save(agent_red.actor.state_dict(), 'model/actor_red_final.pth')
+    torch.save(agent_red.critic.state_dict(), 'model/critic_red_final.pth')
+    torch.save(agent_blueacc.actor.state_dict(), 'model/actor_blueacc_final.pth')
+    torch.save(agent_blueacc.critic.state_dict(), 'model/critic_blueacc_final.pth')
 
     # 绘制奖励曲线
     plt.figure(figsize=(12, 6))
@@ -105,11 +103,5 @@ def test():
     plt.ylabel('Total Reward')
     plt.title('Total Reward per Episode')
     plt.legend()
-    plt.savefig('image/reward_curve.png')
+    plt.savefig('plots/reward_curve.png')
     plt.show()
-
-    # 生成并保存前10个回合的轨迹图
-    plot_trajectories([first_10_episodes_red, first_10_episodes_blue, first_10_episodes_blueacc],
-                      filename='image/first_10_episodes_trajectories.png')
-    # 生成并保存轨迹图
-    plot_trajectories([all_trajectories_red, all_trajectories_blue, all_trajectories_blueacc], filename='image/trajectories.png')

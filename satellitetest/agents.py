@@ -81,7 +81,7 @@ class Agent:
         self.critic = Critic(state_dim, action_dim)
         self.target_actor = Actor(state_dim, action_dim)
         self.target_critic = Critic(state_dim, action_dim)
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=0.001)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=0.0001)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=0.001)
         self.noise = OUNoise(action_dim)
         self.gamma = 0.99
