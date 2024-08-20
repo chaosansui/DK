@@ -13,14 +13,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 
 
-def test():
+def test(args):
     # 参数设置
     state_dim = 21
     action_dim = 6  # 2个卫星，每个3维动作（加速度ax, ay, az）
-    max_episodes = 200
-    max_steps = 100
-    batch_size = 64
-    algorithm = "ppo"
+    max_episodes = args.max_episodes
+    max_steps = args.max_steps
+    batch_size = args.batch_size
+    algorithm = args.algorithm
     # 环境和智能体初始化
     env = SatelliteEnv()
     if algorithm == "dqn":
@@ -49,9 +49,14 @@ def test():
             if algorithm == "ppo":
                 action_red, probs_red = agent_red.get_action(state)
                 action_blueacc, probs_blueacc = agent_blueacc.get_action(state)
-            else:
+            elif algorithm == "dqn":
+                action_red = agent_red.get_action(state, noise_scale=epsilon).reshape(1,3)
+                action_blueacc = agent_blueacc.get_action(state, noise_scale=epsilon).reshape(1,3)
+            elif algorithm == "ddpg":
                 action_red = agent_red.get_action(state, noise_scale=epsilon)
                 action_blueacc = agent_blueacc.get_action(state, noise_scale=epsilon)
+            else:
+                raise RuntimeError(f"not support algorithm : {algorithm}")
             actions = np.concatenate([action_red, action_blueacc])
 
             # 与环境交互
@@ -61,8 +66,8 @@ def test():
 
             # 将经验添加到重放缓冲区中
             if algorithm == "dqn":
-                action_red_to_buffer = action_red.argmax().item()
-                action_blueacc_to_buffer = action_blueacc.argmax().item()
+                action_red_to_buffer = np.argmax(action_red)
+                action_blueacc_to_buffer = np.argmax(action_blueacc)
                 agent_red.replay_buffer.add(state, action_red_to_buffer, reward_red, next_state, done)
                 agent_blueacc.replay_buffer.add(state, action_blueacc_to_buffer, reward_blueacc, next_state, done)
             elif algorithm == "ppo":
@@ -77,10 +82,6 @@ def test():
             # 训练智能体
             agent_red.train(batch_size)
             agent_blueacc.train(batch_size)
-
-            if (step + 1) % 10 == 0 and algorithm == "dqn":
-                agent_red.target_network.load_state_dict(agent_red.q_network.state_dict())
-                agent_blueacc.target_network.load_state_dict(agent_blueacc.q_network.state_dict())
 
             state = next_state
             episode_reward_red += reward_red
