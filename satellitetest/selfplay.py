@@ -3,9 +3,12 @@ import os
 import argparse
 from tqdm import tqdm
 import copy
+import torch
 import nashpy
-from satellitetest.satellite_env import SatelliteEnv
-from agents import Agent as DDPGAgent
+from satellite_env import SatelliteEnv
+from ddpg_agent import DDPGAgent
+from dqn_agent import DQNAgent
+from ppo_agent import PPOAgent
 import logging
 
 logging.basicConfig(
@@ -32,7 +35,7 @@ def set_seed(seed):
 
 
 def get_device():
-    import torch
+    
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
         print("--> Running on the GPU")
@@ -67,15 +70,18 @@ class PSRO:
         self.device = get_device()
         set_seed(args.seed)
 
+
     def estimate_policies(self, estimated_policies):
         # (1) 加载两个智能体对应的模型
         agent_blue, agent_redacc = None, None
         if args.algorithm == 'dqn':
             # TODO 加载模型
-            pass
+            agent_blue = DQNAgent.from_checkpoint(checkpoint = estimated_policies[0])
+            agent_redacc = DQNAgent.from_checkpoint(checkpoint = estimated_policies[1])
         elif args.algorithm == 'ppo':
             # TODO 加载模型
-            pass
+            agent_blue = PPOAgent.from_checkpoint(checkpoint = estimated_policies[0])
+            agent_redacc = PPOAgent.from_checkpoint(checkpoint = estimated_policies[1])
         elif args.algorithm == 'ddpg':
             agent_blue = DDPGAgent.from_checkpoint(checkpoint=estimated_policies[0])
             agent_redacc = DDPGAgent.from_checkpoint(checkpoint=estimated_policies[1])
@@ -97,10 +103,10 @@ class PSRO:
             sample_policy_idx = np.random.choice(np.arange(len(meta_strategy[1])), p=sample_prob)
             if args.algorithm == 'dqn':
                 # TODO 加载模型
-                pass
+                agent_redacc = DQNAgent.from_checkpoint(checkpoint = self._policies[1][sample_policy_idx])
             elif args.algorithm == 'ppo':
                 # TODO 加载模型
-                pass
+                agent_redacc = PPOAgent.from_checkpoint(checkpoint = self._policies[1][sample_policy_idx])
             elif args.algorithm == 'ddpg':
                 agent_redacc = DDPGAgent.from_checkpoint(checkpoint=self._policies[1][sample_policy_idx])
 
@@ -111,8 +117,16 @@ class PSRO:
 
             state = self.env.reset()
             for step in range(args.max_steps):
-                action_blue = self.Agent_0.get_action(state, noise_scale=epsilon)
-                action_redacc = agent_redacc.get_action(state, noise_scale=epsilon)
+                if args.algorithm == "dqn":
+                    action_blue  = self.Agent_0.get_action(state, noise_scale=epsilon)
+                    action_redacc = agent_redacc.get_action(state, noise_scale=epsilon)
+                elif args.algorithm == "ppo":
+                    action_blue, probs_blue = self.Agent_0.get_action(state)
+                    action_redacc, probs_redacc = agent_redacc.get_action(state)
+                elif args.algorithm == "ddpg":
+                    action_blue  = self.Agent_0.get_action(state, noise_scale=epsilon)
+                    action_redacc = agent_redacc.get_action(state, noise_scale=epsilon)    
+
                 actions = np.concatenate([action_blue, action_redacc])
 
                 # 与环境交互
@@ -121,7 +135,15 @@ class PSRO:
                 done = np.any(done)
 
                 # 将经验添加到重放缓冲区中
-                self.Agent_0.replay_buffer.add(state, action_blue, reward_blue, next_state, done)
+                if args.algorithm == 'dqn':
+                    action_add_buffer = action_blue.argmax().item()
+                    self.Agent_0.replay_buffer.add(state, action_add_buffer, reward_blue, next_state, done)
+                elif args.algorithm == "ppo":
+                    action_add_buffer = action_blue
+                    self.Agent_0.store_transition((state, action_add_buffer, reward_blue, next_state, done, probs_blue))
+                else:
+                    action_add_buffer = action_blue
+                    self.Agent_0.replay_buffer.add(state, action_add_buffer, reward_blue, next_state, done)
 
                 # 训练智能体
                 self.Agent_0.train(args.batch_size)
@@ -149,10 +171,10 @@ class PSRO:
             sample_policy_idx = np.random.choice(np.arange(len(meta_strategy[0])), p=sample_prob)
             if args.algorithm == 'dqn':
                 # TODO 加载模型
-                pass
+                agent_blue = DQNAgent.from_checkpoint(checkpoint=self._policies[0][sample_policy_idx])
             elif args.algorithm == 'ppo':
                 # TODO 加载模型
-                pass
+                agent_blue = PPOAgent.from_checkpoint(checkpoint=self._policies[0][sample_policy_idx])
             elif args.algorithm == 'ddpg':
                 agent_blue = DDPGAgent.from_checkpoint(checkpoint=self._policies[0][sample_policy_idx])
 
@@ -163,8 +185,12 @@ class PSRO:
 
             state = self.env.reset()
             for step in range(args.max_steps):
-                action_blue = agent_blue.get_action(state, noise_scale=epsilon)
-                action_redacc = self.Agent_1.get_action(state, noise_scale=epsilon)
+                if args.algorithm == "ppo":
+                    action_blue, blue_log_prob = agent_blue.get_action(state)
+                    action_redacc, redacc_log_prob = self.Agent_1.get_action(state)
+                else:
+                    action_blue = self.Agent_0.get_action(state, noise_scale=epsilon)
+                    action_redacc = agent_redacc.get_action(state, noise_scale=epsilon)
                 actions = np.concatenate([action_blue, action_redacc])
 
                 # 与环境交互
@@ -173,7 +199,15 @@ class PSRO:
                 done = np.any(done)
 
                 # 将经验添加到重放缓冲区中
-                self.Agent_1.replay_buffer.add(state, action_blue, reward_blue, next_state, done)
+                if args.algorithm == 'dqn':
+                    action_add_buffer = action_blue.argmax().item()
+                    self.Agent_1.replay_buffer.add(state, action_add_buffer, reward_blue, next_state, done)
+                elif args.algorithm == "ppo":
+                    action_add_buffer = action_blue
+                    self.Agent_1.store_transition((state, action_add_buffer, reward_blue, next_state, done, probs_blue))
+                else:
+                    action_add_buffer = action_blue
+                    self.Agent_1.replay_buffer.add(state, action_add_buffer, reward_blue, next_state, done)
 
                 # 训练智能体
                 self.Agent_1.train(args.batch_size)
@@ -200,10 +234,12 @@ class PSRO:
         # (2) 创建智能体
         if args.algorithm == 'dqn':
             # TODO 创建新智能体
-            pass
+            self.Agent_0 = DQNAgent(self.state_dim, self.action_dim)
+            self.Agent_1 = DQNAgent(self.state_dim, self.action_dim)
         elif args.algorithm == 'ppo':
             # TODO 创建新智能体
-            pass
+            self.Agent_0 = PPOAgent(self.state_dim, self.action_dim)
+            self.Agent_1 = PPOAgent(self.state_dim, self.action_dim)
         elif args.algorithm == 'ddpg':
             self.Agent_0 = DDPGAgent(self.state_dim, self.action_dim)  # Agent_blue
             self.Agent_1 = DDPGAgent(self.state_dim, self.action_dim)  # Agent_red
@@ -420,9 +456,12 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-
+    # 创建路径
+    if not os.path.exists(args.log_dir):
+        os.mkdir(args.log_dir)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
 
     psro = PSRO()
+    print("psro init")
     psro.init()
     psro.train_psro(10)
