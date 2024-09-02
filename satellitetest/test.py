@@ -1,20 +1,16 @@
 import json
 from datetime import timedelta
 from astropy import units as u
-from astropy.time import Time, TimeDelta
+from astropy.time import Time
 from poliastro.czml.extract_czml import CZMLExtractor
+from satellitetest.orbits.orbit_blue import create_satellite_blue_orbit
+from satellitetest.interface.orbits_untils import OrbitalElementsInterface
 
-from orbits.orbit_blue import create_satellite_blue_orbit
-from interface.orbits_untils import OrbitalElementsInterface
-from satellites.satellite_blue import satellite_blue_run
-from satellites.satellite_red import satellite_red_run
-from orbits.orbit_red import generate_red_orbit
-from orbits.orbit_blueacc import generate_blueacc_orbit
-from satellites.satellite_blueacc import satellite_blueacc_run
-from interface.orbits_maneuver import OrbitalManeuverInterface
-from orbits.orbital_calculations import calculate_updated_orbit
-from specific_time import specific_time
-
+from satellitetest.orbits.orbit_red import generate_red_orbit
+from satellitetest.orbits.orbit_blueacc import generate_blueacc_orbit
+from satellitetest.satellites.satellite_blueacc import satellite_blueacc_run
+from satellitetest.interface.orbits_maneuver import OrbitalManeuverInterface
+from satellitetest.specific_time import specific_time
 
 def create():
     # 创建一个蓝色卫星的轨道

@@ -12,6 +12,13 @@ import os
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+class Args:
+    def __init__(self, max_episodes, max_steps, batch_size, algorithm):
+        self.max_episodes = max_episodes
+        self.max_steps = max_steps
+        self.batch_size = batch_size
+        self.algorithm = algorithm
+
 
 def test(args):
     # 参数设置
@@ -21,6 +28,7 @@ def test(args):
     max_steps = args.max_steps
     batch_size = args.batch_size
     algorithm = args.algorithm
+
     # 环境和智能体初始化
     env = SatelliteEnv()
     if algorithm == "dqn":
@@ -29,7 +37,7 @@ def test(args):
     elif algorithm == "ppo":
         agent_red = PPOAgent(state_dim, action_dim // 2)  # 我方卫星
         agent_blueacc = PPOAgent(state_dim, action_dim // 2)  # 敌方干扰卫星
-    elif algorithm == "ddfg":
+    elif algorithm == "ddpg":
         agent_red = DDPGAgent(state_dim, action_dim // 2)  # 我方卫星
         agent_blueacc = DDPGAgent(state_dim, action_dim // 2)  # 敌方干扰卫星
     else:
@@ -50,13 +58,14 @@ def test(args):
                 action_red, probs_red = agent_red.get_action(state)
                 action_blueacc, probs_blueacc = agent_blueacc.get_action(state)
             elif algorithm == "dqn":
-                action_red = agent_red.get_action(state, noise_scale=epsilon).reshape(1,3)
-                action_blueacc = agent_blueacc.get_action(state, noise_scale=epsilon).reshape(1,3)
+                action_red = agent_red.get_action(state, noise_scale=epsilon).reshape(1, 3)
+                action_blueacc = agent_blueacc.get_action(state, noise_scale=epsilon).reshape(1, 3)
             elif algorithm == "ddpg":
                 action_red = agent_red.get_action(state, noise_scale=epsilon)
                 action_blueacc = agent_blueacc.get_action(state, noise_scale=epsilon)
             else:
                 raise RuntimeError(f"not support algorithm : {algorithm}")
+
             actions = np.concatenate([action_red, action_blueacc])
 
             # 与环境交互
@@ -97,22 +106,22 @@ def test(args):
 
         # 使用最后一个步长的状态计算轨道
         final_trajectories = [
-            np.array(state[:3]),     # Red Satellite
-            np.array(state[7:10]),   # Recon Satellite
-            np.array(state[14:17])   # Jam Satellite
+            np.array(state[:3]),  # Red Satellite
+            np.array(state[7:10]),  # Recon Satellite
+            np.array(state[14:17])  # Jam Satellite
         ]
 
         final_velocities = [
-            np.array(state[3:6]),    # Red Satellite Velocity
+            np.array(state[3:6]),  # Red Satellite Velocity
             np.array(state[10:13]),  # Recon Satellite Velocity
-            np.array(state[17:20])   # Jam Satellite Velocity
+            np.array(state[17:20])  # Jam Satellite Velocity
         ]
 
         # 确保每个向量都是一维的
         final_trajectories = [np.atleast_1d(traj) for traj in final_trajectories]
-        final_velocities = [np.atleast_1d(vel)   for vel in final_velocities]
+        final_velocities = [np.atleast_1d(vel) for vel in final_velocities]
 
-        if (episode+1) % 10 == 0:
+        if (episode + 1) % 10 == 0:
             # 绘制每个回合结束时的轨道
             plot_orbit_from_vectors(
                 trajectories=final_trajectories,
@@ -124,12 +133,7 @@ def test(args):
 
     # 保存训练好的模型
     os.makedirs('model', exist_ok=True)
-    agent_blueacc.save_checkpoint(path = 'model', filename = "agent_blueacc_final.pt")
-    # agent_red.save_checkpoint(path = 'model', filename = "agent_red_final.pt")
-    # torch.save(agent_red.actor.state_dict(), 'model/actor_red_final.pth')
-    # torch.save(agent_red.critic.state_dict(), 'model/critic_red_final.pth')
-    # torch.save(agent_blueacc.actor.state_dict(), 'model/actor_blueacc_final.pth')
-    # torch.save(agent_blueacc.critic.state_dict(), 'model/critic_blueacc_final.pth')
+    agent_blueacc.save_checkpoint(path='model', filename="agent_blueacc_final.pt")
 
     # 绘制奖励曲线
     plt.figure(figsize=(12, 6))
