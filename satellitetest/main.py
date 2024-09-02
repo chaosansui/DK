@@ -5,11 +5,11 @@ from train import test,Args
 
 def main():
     create()
-    # # 创建参数对象
-    # args = Args(max_episodes=1000, max_steps=200, batch_size=32, algorithm='ddpg')
-    #
-    # # 调用 test 函数
-    # test(args)
+    # 创建参数对象
+    args = Args(max_episodes=200, max_steps=100, batch_size=32, algorithm='ddpg')
+
+    # 调用 test 函数
+    test(args)
 
 
 if __name__ == "__main__":
