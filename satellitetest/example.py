@@ -3,12 +3,12 @@ from poliastro.czml.extract_czml import CZMLExtractor
 from czml3.core import Document
 from satellitetest.test import create
 from satellitetest.specific_time import specific_time
-
+from astropy import units as u
 
 
 # 定义开始和结束的时间
 start_epoch = specific_time
-end_epoch = specific_time + 90
+end_epoch = specific_time + 90 * u.min
 sample_points = 10  # 样本点的数量，越多越精确
 
 blue_orb, blueacc_orb, red_orb, delta_v = create()
