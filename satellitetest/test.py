@@ -48,5 +48,5 @@ def create():
     # 设置机动时间和 delta_v
     maneuver_time = specific_time + 30 * u.s  # 30秒后进行机动
     delta_v = [0, 3, 0]  # 假设第一个元素是时间增量，第二个元素是速度增量
-
+    # print(blue_orb,blueacc_orbit,red_orbit)
     return blue_orb, blueacc_orbit, red_orbit, delta_v

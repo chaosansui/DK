@@ -1,10 +1,17 @@
 import logging
+
+from czml3.properties import Position, PolylineMaterial, Path, Color
+from matplotlib import pyplot as plt
+from poliastro.maneuver import Maneuver
 import os
 from poliastro.plotting import OrbitPlotter
 import numpy as np
 from poliastro.twobody import Orbit
 from astropy.time import Time, TimeDelta
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from PIL import Image
+import imageio
 
 from satellites.satellite_blueacc import satellite_blueacc_run
 from satellites.satellite_red import satellite_red_run
@@ -12,16 +19,21 @@ from satellites.satellite_blue import satellite_blue_run
 from orbits.orbit_blue import create_satellite_blue_orbit
 from orbits.orbit_blueacc import generate_blueacc_orbit
 from satellitetest.orbits.orbit_red import generate_red_orbit
+
 from test import create
 from specific_time import specific_time
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.cm as cm
+
+
 from poliastro.twobody import Orbit
 from astropy import units as u
-from astropy.time import Time
+
 from poliastro.bodies import Earth
 from plotly.subplots import make_subplots
+
+
+from czml3 import Document, Packet
+import numpy as np
+from datetime import datetime, timedelta
 
 class SatelliteEnv:
     def __init__(self):
@@ -66,53 +78,58 @@ class SatelliteEnv:
         self.blue_positions = [self.state[1, :3]]
         self.blueacc_positions = [self.state[2, :3]]
 
+        # 初始化距离                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               啊                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        案件    踪变量
+        self.previous_distance_to_recon = np.linalg.norm(self.state[0, :3] - self.state[1, :3])
+        self.previous_distance_to_interference = np.linalg.norm(self.state[0, :3] - self.state[2, :3])
+        self.previous_distance_interference_to_recon = np.linalg.norm(self.state[2, :3] - self.state[1, :3])
+
         return self.state.flatten()
 
     def step(self, actions):
         actions = np.array(actions).reshape((2, 3))
 
+        # 处理动作和加速度
         red_acceleration = np.clip(actions[0], -self.red_max_acceleration, self.red_max_acceleration)
         blueacc_acceleration = np.clip(actions[1], -self.blueacc_max_acceleration, self.blueacc_max_acceleration)
 
-        if np.array_equal(red_acceleration, self.previous_red_acceleration):
-            self.red_continuous_maneuver_steps = 0
-        else:
-            self.red_continuous_maneuver_steps += 1
-            if self.red_continuous_maneuver_steps >= self.continuous_maneuver_threshold:
-                self.red_delay_steps = 30
+        # 创建时间步长
+        time_step = TimeDelta(20 * u.s)  # 每一步20秒
 
-        if np.array_equal(blueacc_acceleration, self.previous_blueacc_acceleration):
-            self.blueacc_continuous_maneuver_steps = 0
-        else:
-            self.blueacc_continuous_maneuver_steps += 1
-            if self.blueacc_continuous_maneuver_steps >= self.continuous_maneuver_threshold:
-                self.blueacc_delay_steps = 30
-
-        self.state[0, :3] += self.state[0, 3:6]
-        self.state[1, :3] += self.state[1, 3:6]
-        self.state[2, :3] += self.state[2, 3:6]
-
+        # 更新卫星状态
         if self.red_delay_steps == 0:
-            self.state[0, 3:6] += red_acceleration
+            red_maneuver = Maneuver.impulse(red_acceleration * u.m / u.s)
+            red_orbit = Orbit.from_vectors(Earth, self.state[0, :3] * u.km, self.state[0, 3:6] * u.km / u.s)
+            red_orbit = red_orbit.apply_maneuver(red_maneuver)
+            # 更新卫星状态
+            self.state[0, :3] = red_orbit.r.to(u.km).value
+            self.state[0, 3:6] = red_orbit.v.to(u.km / u.s).value
             self.state[0, 6] -= np.sum(self.red_fuel_consumption_per_move * np.abs(red_acceleration))
         else:
             self.red_delay_steps -= 1
 
         if self.blueacc_delay_steps == 0:
-            self.state[2, 3:6] += blueacc_acceleration
+            blueacc_maneuver = Maneuver.impulse(blueacc_acceleration * u.m / u.s)
+            blueacc_orbit = Orbit.from_vectors(Earth, self.state[2, :3] * u.km, self.state[2, 3:6] * u.km / u.s)
+            blueacc_orbit = blueacc_orbit.apply_maneuver(blueacc_maneuver)
+            # 更新卫星状态
+            self.state[2, :3] = blueacc_orbit.r.to(u.km).value
+            self.state[2, 3:6] = blueacc_orbit.v.to(u.km / u.s).value
             self.state[2, 6] -= np.sum(self.blueacc_fuel_consumption_per_move * np.abs(blueacc_acceleration))
         else:
             self.blueacc_delay_steps -= 1
 
+        # 更新位置
+        self.state[0, :3] += self.state[0, 3:6] * time_step.to(u.s).value
+        self.state[1, :3] += self.state[1, 3:6] * time_step.to(u.s).value
+        self.state[2, :3] += self.state[2, 3:6] * time_step.to(u.s).value
+
+        # 更新燃料状态
         self.state[:, 6] = np.clip(self.state[:, 6], 0, self.max_fuel)
 
-        self.previous_red_acceleration = red_acceleration
-        self.previous_blueacc_acceleration = blueacc_acceleration
-
         self.time += 1
-
         reward_red, reward_blueacc, done = self.calculate_reward()
 
+        # 更新轨迹记录
         self.red_positions.append(self.state[0, :3])
         self.blue_positions.append(self.state[1, :3])
         self.blueacc_positions.append(self.state[2, :3])
@@ -120,25 +137,32 @@ class SatelliteEnv:
         return self.state.flatten(), (reward_red, reward_blueacc), done, {}
 
     def calculate_reward(self):
+        # 计算红方与蓝侦察卫星和蓝干扰卫星的当前距离
         current_distance_to_recon = np.linalg.norm(self.state[0, :3] - self.state[1, :3])
         current_distance_to_interference = np.linalg.norm(self.state[0, :3] - self.state[2, :3])
+        current_distance_interference_to_recon = np.linalg.norm(self.state[2, :3] - self.state[1, :3])
 
-        if hasattr(self, 'previous_distance_to_recon') and hasattr(self, 'previous_distance_to_interference'):
-            previous_distance_to_recon = self.previous_distance_to_recon
-            previous_distance_to_interference = self.previous_distance_to_interference
-        else:
-            previous_distance_to_recon = current_distance_to_recon
-            previous_distance_to_interference = current_distance_to_interference
+        # 计算距离的变化
+        distance_change_to_recon = self.previous_distance_to_recon - current_distance_to_recon
+        distance_change_to_interference = current_distance_to_interference - self.previous_distance_to_interference
+        distance_change_interference_to_recon = current_distance_interference_to_recon - self.previous_distance_interference_to_recon
 
-        distance_change_to_recon = current_distance_to_recon - previous_distance_to_recon
-        distance_change_to_interference = current_distance_to_interference - previous_distance_to_interference
+        # 增强红方接近蓝侦察卫星的奖励权重
+        recon_weight = 1.1  # 调整这个权重来增强红方的奖励
+        reward_red = recon_weight * distance_change_to_recon + distance_change_to_interference
 
-        reward_red = distance_change_to_recon + distance_change_to_interference
-        reward_blueacc = distance_change_to_recon - distance_change_to_interference
+        # 奖励蓝干扰卫星：尽量保持在红方和蓝侦察卫星之间
+        interference_midpoint = (self.state[0, :3] + self.state[1, :3]) / 2
+        distance_to_midpoint = np.linalg.norm(self.state[2, :3] - interference_midpoint)
+        previous_distance_to_midpoint = np.linalg.norm(self.red_positions[-1] - interference_midpoint)
 
+        reward_blueacc = previous_distance_to_midpoint - distance_to_midpoint
+
+        # 计算燃料消耗
         fuel_used_red = self.max_fuel - self.state[0, 6]
         fuel_used_blueacc = self.max_fuel - self.state[2, 6]
 
+        # 奖励燃料消耗更少的一方
         if fuel_used_red < fuel_used_blueacc:
             reward_red += 10
             reward_blueacc -= 10
@@ -146,9 +170,11 @@ class SatelliteEnv:
             reward_red -= 10
             reward_blueacc += 10
 
+        # 惩罚红方、蓝干扰和蓝侦察卫星共线的情况
         if self.is_collinear(self.state[0, :3], self.state[1, :3], self.state[2, :3]):
             reward_red -= 1000
 
+        # 特殊情况处理
         if current_distance_to_recon <= 20:
             reward_red += 4000
             done = True
@@ -159,13 +185,15 @@ class SatelliteEnv:
         else:
             done = self.time >= 300 or self.state[0, 6] <= 0
 
-        reward_blueacc *= 0.3
+        # 缩放蓝干扰卫星的奖励
+        reward_blueacc *= 0.05
 
+        # 更新之前的距离
         self.previous_distance_to_recon = current_distance_to_recon
         self.previous_distance_to_interference = current_distance_to_interference
+        self.previous_distance_interference_to_recon = current_distance_interference_to_recon
 
         return reward_red, reward_blueacc, done
-
     def is_collinear(self, p1, p2, p3, tol=1e-6):
         v1 = p2 - p1
         v2 = p3 - p1
