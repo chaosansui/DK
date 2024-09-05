@@ -1,0 +1,336 @@
+[
+    {
+        "id": "document",
+        "version": "1.0",
+        "name": "document_packet",
+        "clock": {
+            "interval": "2022-01-01T00:00:00.000Z/2022-04-01T00:00:00.000Z",
+            "currentTime": "2022-01-01T00:00:00.000000Z",
+            "multiplier": 60,
+            "range": "LOOP_STOP",
+            "step": "SYSTEM_CLOCK_MULTIPLIER"
+        }
+    },
+    {
+        "id": "custom_properties",
+        "properties": {
+            "custom_attractor": true,
+            "ellipsoid": [
+                {
+                    "array": [
+                        6378136.6,
+                        6378136.6,
+                        6356751.9
+                    ]
+                }
+            ],
+            "map_url": [
+                "https://upload.wikimedia.org/wikipedia/commons/c/c4/Earthmap1000x500compac.jpg"
+            ],
+            "scene3D": true
+        }
+    },
+    {
+        "id": 0,
+        "availability": "2022-01-01T00:00:00.000Z/2022-04-01T00:00:00.000Z",
+        "position": {
+            "epoch": "2022-01-01T00:00:00.000000Z",
+            "interpolationAlgorithm": "LAGRANGE",
+            "interpolationDegree": 5,
+            "referenceFrame": "INERTIAL",
+            "cartesian": [
+                0.0,
+                541035.0,
+                0.0,
+                0.0,
+                777600.0,
+                424317.0497081243,
+                -183841.4882215483,
+                -283091.0666078936,
+                1555200.0,
+                125422.6650605696,
+                -288968.1017561945,
+                -444971.8555543713,
+                2332800.0,
+                -226907.0929372502,
+                -272101.9490992138,
+                -419000.2580035382,
+                3110400.0,
+                -485497.2722570029,
+                -142258.6780263441,
+                -219059.1540913467,
+                3888000.0,
+                -545417.4299301426,
+                45933.8115139824,
+                70731.8670048444,
+                4665600.0,
+                -382720.2987738248,
+                215339.1826680757,
+                331593.2627270382,
+                5443200.0,
+                -62748.6667991868,
+                295990.7936195702,
+                455785.8527064491,
+                6220800.0,
+                283000.2230663746,
+                252790.2757195811,
+                389262.8887736111,
+                6998400.0,
+                507891.284910964,
+                102073.0594280354,
+                157178.7279625956,
+                7776000.0,
+                513959.1105618195,
+                -92521.2640735232,
+                -142470.2529546552,
+                8553600.0,
+                298531.8454747945,
+                -247333.0189484597,
+                -380859.4502732215
+            ]
+        },
+        "billboard": {
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADJSURBVDhPnZHRDcMgEEMZjVEYpaNklIzSEfLfD4qNnXAJSFWfhO7w2Zc0Tf9QG2rXrEzSUeZLOGm47WoH95x3Hl3jEgilvDgsOQUTqsNl68ezEwn1vae6lceSEEYvvWNT/Rxc4CXQNGadho1NXoJ+9iaqc2xi2xbt23PJCDIB6TQjOC6Bho/sDy3fBQT8PrVhibU7yBFcEPaRxOoeTwbwByCOYf9VGp1BYI1BA+EeHhmfzKbBoJEQwn1yzUZtyspIQUha85MpkNIXB7GizqDEECsAAAAASUVORK5CYII=",
+            "show": true
+        },
+        "label": {
+            "text": "\u4fa6\u5bdf\u536b\u661f",
+            "font": "11pt Lucida Console",
+            "style": "FILL",
+            "fillColor": {
+                "rgba": [
+                    255,
+                    255,
+                    0,
+                    255
+                ]
+            },
+            "outlineColor": {
+                "rgba": [
+                    255,
+                    255,
+                    0,
+                    255
+                ]
+            },
+            "outlineWidth": 1.0
+        },
+        "path": {
+            "resolution": 120,
+            "material": {
+                "solidColor": {
+                    "color": {
+                        "rgba": [
+                            255,
+                            255,
+                            0,
+                            255
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": 1,
+        "availability": "2022-01-01T00:00:00.000Z/2022-04-01T00:00:00.000Z",
+        "position": {
+            "epoch": "2022-01-01T00:00:00.000000Z",
+            "interpolationAlgorithm": "LAGRANGE",
+            "interpolationDegree": 5,
+            "referenceFrame": "INERTIAL",
+            "cartesian": [
+                0.0,
+                891000.0,
+                0.0,
+                0.0,
+                777600.0,
+                668119.6896412082,
+                -322890.4703083013,
+                -497207.7223773661,
+                1555200.0,
+                112783.0678428662,
+                -485642.5574518797,
+                -747823.9591574601,
+                2332800.0,
+                -498700.4562636637,
+                -411242.6659206193,
+                -633258.172876867,
+                3110400.0,
+                -871821.6209615638,
+                -139423.6533342969,
+                -214693.598896514,
+                3888000.0,
+                -831786.7305219627,
+                198631.8003616146,
+                305866.1500762632,
+                4665600.0,
+                -397174.5773870661,
+                442216.9018417572,
+                680954.3135527546,
+                5443200.0,
+                227598.6780867577,
+                472910.3166667083,
+                728218.0276615237,
+                6220800.0,
+                739794.8758112966,
+                271927.8055248937,
+                418732.1004147695,
+                6998400.0,
+                883249.4403575627,
+                -64187.8467140871,
+                -98840.6162577238,
+                7776000.0,
+                584906.8792457529,
+                -368277.8481994474,
+                -567098.1553913546,
+                8553600.0,
+                -3945.5680142263,
+                -490142.8924434299,
+                -754753.8673363772
+            ]
+        },
+        "billboard": {
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADJSURBVDhPnZHRDcMgEEMZjVEYpaNklIzSEfLfD4qNnXAJSFWfhO7w2Zc0Tf9QG2rXrEzSUeZLOGm47WoH95x3Hl3jEgilvDgsOQUTqsNl68ezEwn1vae6lceSEEYvvWNT/Rxc4CXQNGadho1NXoJ+9iaqc2xi2xbt23PJCDIB6TQjOC6Bho/sDy3fBQT8PrVhibU7yBFcEPaRxOoeTwbwByCOYf9VGp1BYI1BA+EeHhmfzKbBoJEQwn1yzUZtyspIQUha85MpkNIXB7GizqDEECsAAAAASUVORK5CYII=",
+            "show": true
+        },
+        "label": {
+            "text": "\u654c\u65b9\u5e72\u6270",
+            "font": "11pt Lucida Console",
+            "style": "FILL",
+            "fillColor": {
+                "rgba": [
+                    255,
+                    255,
+                    0,
+                    255
+                ]
+            },
+            "outlineColor": {
+                "rgba": [
+                    255,
+                    255,
+                    0,
+                    255
+                ]
+            },
+            "outlineWidth": 1.0
+        },
+        "path": {
+            "resolution": 120,
+            "material": {
+                "solidColor": {
+                    "color": {
+                        "rgba": [
+                            255,
+                            255,
+                            0,
+                            255
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": 2,
+        "availability": "2022-01-01T00:00:00.000Z/2022-04-01T00:00:00.000Z",
+        "position": {
+            "epoch": "2022-01-01T00:00:00.000000Z",
+            "interpolationAlgorithm": "LAGRANGE",
+            "interpolationDegree": 5,
+            "referenceFrame": "INERTIAL",
+            "cartesian": [
+                0.0,
+                637000.0,
+                0.0,
+                0.0,
+                777600.0,
+                572462.0640763044,
+                -153760.2694409021,
+                -236770.0517387353,
+                1555200.0,
+                392552.1705898554,
+                -276601.6920792329,
+                -425929.2545646404,
+                2332800.0,
+                134682.1278957397,
+                -344687.9763962545,
+                -530772.9383007402,
+                3110400.0,
+                -149501.309315982,
+                -346051.9362533553,
+                -532873.2522967393,
+                3888000.0,
+                -405680.3459589703,
+                -282055.1029607911,
+                -434326.770914437,
+                4665600.0,
+                -587131.0801745804,
+                -165946.3868975745,
+                -255535.0270551944,
+                5443200.0,
+                -661997.4286178095,
+                -19650.9561205778,
+                -30259.8188355355,
+                6220800.0,
+                -617426.9490903376,
+                130196.295653848,
+                200484.7140958054,
+                6998400.0,
+                -461050.8624564313,
+                256421.3122654877,
+                394854.1947329831,
+                7776000.0,
+                -220118.340933492,
+                335495.0603150959,
+                516617.0889120766,
+                8553600.0,
+                61906.5251128121,
+                351586.4367605083,
+                541395.6357199183
+            ]
+        },
+        "billboard": {
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADJSURBVDhPnZHRDcMgEEMZjVEYpaNklIzSEfLfD4qNnXAJSFWfhO7w2Zc0Tf9QG2rXrEzSUeZLOGm47WoH95x3Hl3jEgilvDgsOQUTqsNl68ezEwn1vae6lceSEEYvvWNT/Rxc4CXQNGadho1NXoJ+9iaqc2xi2xbt23PJCDIB6TQjOC6Bho/sDy3fBQT8PrVhibU7yBFcEPaRxOoeTwbwByCOYf9VGp1BYI1BA+EeHhmfzKbBoJEQwn1yzUZtyspIQUha85MpkNIXB7GizqDEECsAAAAASUVORK5CYII=",
+            "show": true
+        },
+        "label": {
+            "text": "\u6211\u65b9\u5e72\u6270",
+            "font": "11pt Lucida Console",
+            "style": "FILL",
+            "fillColor": {
+                "rgba": [
+                    255,
+                    255,
+                    0,
+                    255
+                ]
+            },
+            "outlineColor": {
+                "rgba": [
+                    255,
+                    255,
+                    0,
+                    255
+                ]
+            },
+            "outlineWidth": 1.0
+        },
+        "path": {
+            "resolution": 120,
+            "material": {
+                "solidColor": {
+                    "color": {
+                        "rgba": [
+                            255,
+                            255,
+                            0,
+                            255
+                        ]
+                    }
+                }
+            }
+        }
+    }
+]

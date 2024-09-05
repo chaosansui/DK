@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cesium CZML Example</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.98/Build/Cesium/Cesium.js"></script>
+    <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.98/Build/Cesium/Widgets/widgets.css">
+    <style>
+        html, body, #cesiumContainer {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+    <script>
+        Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0OWRlMjFmYi0xMjkwLTQzMzEtYjdiYi05NGMwYWVhN2M3YjAiLCJpZCI6MjAzNzEwLCJpYXQiOjE3MjM1MjMzOTB9.iNVi2qnNuwlG1JEGLsrLlet1FZsXwYzprqE-zohA-kA';
+
+
+        var viewer = new Cesium.Viewer('cesiumContainer', {
+            shouldAnimate: true
+        });
+
+        var czmlDataSource = Cesium.CzmlDataSource.load('output.czml');
+        viewer.dataSources.add(czmlDataSource);
+
+        czmlDataSource.then(function(dataSource) {
+            console.log('CZML 数据成功加载');
+            viewer.zoomTo(dataSource);
+        }).catch(function(error) {
+            console.error('加载 CZML 数据时出错:', error);
+        });
+    </script>
+</body>
+</html>
